@@ -1,6 +1,6 @@
 <?php
 
-class System_Controller extends Base_Controller {
+class Hdl_Controller extends Base_Controller {
 
 	/**
 	 * Конструктор
@@ -22,11 +22,11 @@ class System_Controller extends Base_Controller {
 	/**
 	 * Method: GET
 	 * 
-	 * Главная страница для админа
+	 * Главная страница для управления hdl структурой
 	 */
 	public function get_index()
 	{
-		return View::make('system.index');
+		return View::make('hdl.index');
 	}
 	
 }

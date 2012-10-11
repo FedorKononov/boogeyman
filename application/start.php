@@ -62,7 +62,7 @@ Autoloader::map(array(
 	'Base_Controller'        => path('app').'controllers/base.php',
 	'Front_Controller'       => path('app').'controllers/front.php',
 	'System_Controller'      => path('app').'controllers/system.php',
-	'Moderator_Controller'   => path('app').'controllers/moderator.php',
+	'Hdl_Controller'         => path('app').'controllers/hdl.php',
 	'App\Libs\AccountAuth'   => path('app').'libraries/accountauth.php',
 ));
 

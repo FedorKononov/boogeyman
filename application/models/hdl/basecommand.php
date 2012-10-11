@@ -1,6 +1,11 @@
-<?php
+<?php namespace App\Models\HDL;
 
-class Home_Controller extends Base_Controller {
+use App\Models\EloquentFix;
+
+class BaseCommand extends EloquentFix {
+	/**
+	 * crc table
+	 */
 	static $crc_tab = array(
 		0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 		0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -35,96 +40,55 @@ class Home_Controller extends Base_Controller {
 		0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 	);
-	/*
-	|--------------------------------------------------------------------------
-	| The Default Controller
-	|--------------------------------------------------------------------------
-	|
-	*/
 
-	public function get_index()
-	{
-		return View::make('home.index');
-	}
-
-	public function get_test()
-	{
-
-		$hdl_header = array(0xC0, 0xA8, 0x0A, 0x64, 0x48, 0x44, 0x4C, 0x4D, 0x49, 0x52, 0x41, 0x43, 0x4C, 0x45, 0xAA, 0xAA);
-
-		//$cmd = array(0xC0, 0xA8, 0x0A, 0x64, 0x48, '44', '4c', '4d', '49', '52', '41', '43', '4c', '45', 'aa', 'aa', '0d', '01', 'fe', 'ff', 'fe', '00', '31', '01', '5f', '03', '28', 'f8', '49');
-
-		$cmd = array(0x0D, 0x01, 0xFE, 0xFF, 0xFE, 0x00, 0x31, 0x01, 0x5F, 0x03, 0x28, 0x00, 0x00);
-
-		self::pack_crc($cmd);
-
-		$packet = array_merge($hdl_header, $cmd);
-
-		$broadcast_string = '';
-		foreach ($packet as $byte){
-			echo $byte, ' - ', chr($byte), '<br/>';
-			$broadcast_string .= chr($byte);
-		}
-
-		$cIP = '192.168.10.255';
-		$cPort = 6000;
-		$timeout = 10;
-		$sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-		socket_bind($sock,'0.0.0.0',6000); 
-		socket_set_option($sock, SOL_SOCKET, SO_BROADCAST, 1); 
-		socket_sendto($sock, $broadcast_string, strlen($broadcast_string), 0, '192.168.10.255', 6000);
-		//socket_set_block($sock);
-		// socket_set_option($sock, SOL_SOCKET, SO_RCVTIMEO, array("sec"=>1,"usec"=>0));
-		// $timeout += time();
-		// while (time() <= $timeout-1) {
-		// 	if (($len = @socket_recvfrom($sock,$ret,2048,0,$cIP,$cPort)) != false) {
-		// 		echo bin2hex($ret), '<br/>';
-		// 	}
-		// }
-		//socket_set_nonblock($sock);
-		socket_close($sock);
-		exit;
-		return View::make('home.index');
-	}
-
-	public static function pack_crc(&$array)
+	/**
+	 * Adding crc in last two bytes of packet.
+	 *
+	 * @return bool
+	 */
+	public static function pack_crc(&$packet)
 	{
 		$crc = 0;
 		$mask = 255; // mask 8 bit 
 
-		for ($i = 0; $i < count($array) - 2; $i++) {
+		for ($i = 0; $i < count($packet) - 2; $i++) {
 
 			$dat = ($crc >> 8) & $mask;
 
 			$crc <<= 8;
 
-			$crc ^= self::$crc_tab[$dat ^ $array[$i]];
+			$crc ^= self::$crc_tab[$dat ^ $packet[$i]];
 		}
 
-		$array[count($array)-2] = (($crc >> 8) & $mask);
-		$array[count($array)-1] = $crc & $mask; // get last 8 bit
+		$packet[count($packet)-2] = (($crc >> 8) & $mask);
+		$packet[count($packet)-1] = $crc & $mask; // get last 8 bit
 
 		return true;
 	}
 
-	public static function check_crc(&$array)
+	/**
+	 * Checking crc in last two bytes of packet.
+	 *
+	 * @return bool
+	 */
+	public static function check_crc(&$packet)
 	{
 		$crc = 0;
 		$mask = 255; // mask 8 bit 
 
-		for ($i = 0; $i < count($array) - 2; $i++) { 
+		for ($i = 0; $i < count($packet) - 2; $i++) { 
 			$dat = ($crc >> 8) & $mask;
 
 			$crc <<= 8;
 
-			$crc ^= self::$crc_tab[$dat ^ $array[$i]];
+			$crc ^= self::$crc_tab[$dat ^ $packet[$i]];
 		}
 
 		$first_byte = (($crc >> 8) & $mask);
 
 		$second_byte = $crc & $mask; // get last 8 bit
 
-		if (($array[count($array)-2] == $first_byte) && ($array[count($array)-1] == $second_byte))
+		if (($packet[count($packet)-2] == $first_byte) && ($packet[count($packet)-1] == $second_byte))
 			return true;
 
 		return false;
